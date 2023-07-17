@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	wg      sync.WaitGroup
-	Counter int
+	wg sync.WaitGroup
+	// Counter int
 )
 
 func EthCaller(ctx context.Context, client ethclient.Client, injectChan <-chan *ethereum.CallMsg, processChan chan []byte) {
@@ -25,7 +25,7 @@ func EthCaller(ctx context.Context, client ethclient.Client, injectChan <-chan *
 			if err != nil {
 				log.Warn(err.Error())
 			}
-			Counter++
+			// Counter++
 			processChan <- append(root, _data.To.Bytes()...)
 		}()
 

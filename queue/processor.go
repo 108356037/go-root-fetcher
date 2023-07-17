@@ -15,7 +15,8 @@ func LogProcessor(processChan <-chan []byte) {
 		// if len(proc) == 0 {
 		// 	continue
 		// }
-		fmt.Printf("we are in LogProcessor: %v, counter: %d\n", proc, Counter)
+		// fmt.Printf("we are in LogProcessor: %v, counter: %d\n", proc, Counter)
+		fmt.Printf("we are in LogProcessor: %v", proc)
 	}
 }
 

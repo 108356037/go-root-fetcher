@@ -25,7 +25,7 @@ func main() {
 
 	client, err := ethclient.Dial(config.ETH_URL)
 	if err != nil {
-		log.Error(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -35,49 +35,29 @@ func main() {
 	calldataChan := make(chan *ethereum.CallMsg, bufferSize)
 	callResultChan := make(chan []byte, bufferSize)
 
+	go queue.OnNewBlockTrigger(ctx, config.ETH_WSS, triggerChan)
+
 	// go queue.TornRootQueryInjector(&config.TORN_01_ETH, 100, calldataChan, triggerChan)
 	// go queue.TornRootQueryInjector(&config.TORN_1_ETH, 100, calldataChan, triggerChan)
 	// go queue.TornRootQueryInjector(&config.TORN_10_ETH, 100, calldataChan, triggerChan)
 	// go queue.TornRootQueryInjector(&config.TORN_100_ETH, 100, calldataChan, triggerChan)
 
-	contracts := [](*common.Address){
-		&config.TORN_100_ETH,
-		&config.TORN_10_ETH,
-		&config.TORN_1_ETH,
-		&config.TORN_01_ETH,
-		&config.TORN_100_100_DAI,
-		&config.TORN_10_000_DAI2}
+	contracts, rootSizes :=
+		[](*common.Address){
+			&config.TORN_100_ETH, &config.TORN_10_ETH, &config.TORN_1_ETH, &config.TORN_01_ETH,
+			/* &config.TORN_100_100_DAI, &config.TORN_10_000_DAI2 */
+		},
+		[](int){
+			100, 100, 100, 100 /*30, 30*/}
 
-	rootSizes := [](int){100, 100, 100, 100, 30, 30}
-	go queue.TornRootMutipleContractsQueryInjector(contracts, rootSizes, calldataChan, triggerChan)
+	go queue.TornRootBatchContractQueryInjector(contracts, rootSizes, calldataChan, triggerChan)
 
 	go queue.EthCaller(ctx, *client, calldataChan, callResultChan)
 
-	// go queue.LogProcessor(callResultChan)
 	go queue.TornRootRedisProcessor(callResultChan)
 
-	tickerChan := make(chan bool)
-	ticker := time.NewTicker(time.Second * time.Duration(config.UPDATE_INTERVAL))
-	go func() {
-		for {
-			select {
-			case <-tickerChan:
-				return
-			case <-ticker.C:
-				log.Info("Fetch data triggered, time: ", time.Now())
-				triggerChan <- "triggered"
-			}
-		}
-	}()
-
-	// go func() {
-	// 	for {
-	// 		time.Sleep(2)
-	// 		triggerChan <- "triggered"
-	// 	}
-	// }()
-
 	triggerChan <- "triggered"
+
 	// block until receives os signal
 	<-ctx.Done()
 	// stop acts like signal.Reset
@@ -85,10 +65,6 @@ func main() {
 
 	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	log.Info("Cleaning tickers")
-	ticker.Stop()
-	close(tickerChan)
 
 	log.Info("Cleaning trigger, inject, process channels")
 	close(triggerChan)
