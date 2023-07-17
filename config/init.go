@@ -14,6 +14,7 @@ import (
 
 var (
 	ETH_URL   string
+	ETH_WSS   string
 	REDIS_URL string
 
 	TORN_01_ETH  common.Address
@@ -59,6 +60,7 @@ func init() {
 	loadFromDotenvFile()
 
 	ETH_URL = mustGetEnv("ETH_URL")
+	ETH_WSS = mustGetEnv("ETH_WSS")
 	REDIS_URL = mustGetEnv("REDIS_URL")
 
 	TORN_01_ETH = convert2CommonAddr(mustGetEnv("TORN_01_ETH"))
